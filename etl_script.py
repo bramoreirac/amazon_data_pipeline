@@ -257,6 +257,60 @@ def clean_collected_at(value):
     except ValueError:
         return None
 
+def transform_row(raw_row):
+    listed_price, has_discount = clean_listed_price(
+        raw_row["Listed_price"],
+        raw_row["Current/discounted_price"]
+    )
+
+    badge_text, is_best_seller = clean_is_best_seller(raw_row["is_best_seller"])
+    is_couponed, coupon_type, coupon_value = clean_coupon(raw_row["is_couponed"])
+    (
+        delivery_details_raw,
+        delivery_is_free,
+        has_fastest_delivery,
+        has_delivery_threshold,
+    ) = clean_delivery_details(raw_row["delivery_details"])
+    (
+        sustainability_badges_raw,
+        primary_badge,
+        additional_badge_count,
+    ) = clean_sustainability(raw_row["sustainability_badges"])
+    product_url_raw, asin, product_path = clean_product_url(raw_row["product_url"])
+
+    cleaned_row = {
+        "title": clean_title(raw_row["Title"]),
+        "rating": clean_rating(raw_row["Rating"]),
+        "number_of_reviews": clean_n_reviews(raw_row["Number_of_reviews"]),
+        "monthly_purchases_lower_bound": clean_monthly_pur_lb(raw_row["bought_in_last_month"]),
+        "current_price": clean_price(raw_row["Current/discounted_price"]),
+        "variant_metadata": clean_var_metadata(raw_row["Price_on_variant"]),
+        "listed_price": listed_price,
+        "has_discount": has_discount,
+        "badge_text": badge_text,
+        "is_best_seller": is_best_seller,
+        "is_sponsored": clean_is_sponsored(raw_row["is_sponsored"]),
+        "coupon_text": clean_title(raw_row["is_couponed"]),
+        "is_couponed": is_couponed,
+        "coupon_type": coupon_type,
+        "coupon_value": coupon_value,
+        "buy_box_action": clean_buy_box_action(raw_row["buy_box_availability"]),
+        "delivery_details_raw": delivery_details_raw,
+        "delivery_is_free": delivery_is_free,
+        "has_fastest_delivery": has_fastest_delivery,
+        "has_delivery_threshold": has_delivery_threshold,
+        "sustainability_badges_raw": sustainability_badges_raw,
+        "primary_badge": primary_badge,
+        "additional_badge_count": additional_badge_count,
+        "image_url": clean_image_url(raw_row["image_url"]),
+        "product_url_raw": product_url_raw,
+        "asin": asin,
+        "product_path": product_path,
+        "collected_at": clean_collected_at(raw_row["collected_at"]),
+    }
+
+    return cleaned_row
+
 
 if __name__ == "__main__":
     # Evaluating clean_title()
@@ -449,9 +503,32 @@ if __name__ == "__main__":
     """
 
     # Evaluating clean_collected_at()
+
+    """
     assert clean_collected_at("21-08-2025 11:14") == datetime(2025, 8, 21, 11, 14)
     assert clean_collected_at(" 21-08-2025 11:14 ") == datetime(2025, 8, 21, 11, 14)
     assert clean_collected_at("2025-08-21 11:14") is None
     assert clean_collected_at("31-02-2025 11:14") is None
     assert clean_collected_at("") is None
     assert clean_collected_at(None) is None
+    """
+
+    sample = {
+        "Title": " wireless headset ",
+        "Rating": "4.6 out of 5 stars",
+        "Number_of_reviews": "2,457",
+        "bought_in_last_month": "1K+ bought in past month",
+        "Current/discounted_price": "$29.99",
+        "Price_on_variant": "basic variant price: 2.4GHz",
+        "Listed_price": "$39.99",
+        "is_best_seller": "Best Seller",
+        "is_sponsored": "Sponsored",
+        "is_couponed": "Save 15% with coupon",
+        "buy_box_availability": "Add to cart",
+        "delivery_details": "FREE delivery Wed, Sep 3 on $35 of items shipped by Amazon Or fastest delivery Sun, Aug 31",
+        "sustainability_badges": "Energy efficiency +3 more",
+        "image_url": "https://m.media-amazon.com/images/I/example.jpg",
+        "product_url": "/sspa/click?url=%2FWireless-Headset%2Fdp%2FB0DNZB7TQG%2Fref",
+        "collected_at": "21-08-2025 11:14",
+    }
+    print(transform_row(sample))
