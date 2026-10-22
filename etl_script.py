@@ -1,10 +1,12 @@
 import re
+import csv
+from typing import Any
 from urllib.parse import urlparse
 from urllib.parse import unquote
 from datetime import datetime
 
 # Clean title function
-def clean_title(value):
+def clean_title(value: str | None) -> str | None:
     if value is None:
         return None
 
@@ -12,7 +14,7 @@ def clean_title(value):
     return clean_value or None
 
 # Clean rating function
-def clean_rating(value):
+def clean_rating(value: str | None) -> float | None:
     if value is None:
         return None
 
@@ -24,7 +26,7 @@ def clean_rating(value):
     return None
 
 # Clean review numbers function
-def clean_n_reviews(value):
+def clean_n_reviews(value: str | None) -> int | None:
     if value is None:
         return None
 
@@ -37,7 +39,7 @@ def clean_n_reviews(value):
     return None
 
 # Clean lower bound of monthly purchases
-def clean_monthly_pur_lb(value):
+def clean_monthly_pur_lb(value: str | None) -> int | None:
     if value is None:
         return None
 
@@ -52,7 +54,7 @@ def clean_monthly_pur_lb(value):
     return None
 
 # Clean price, removes dollar sign
-def clean_price(value):
+def clean_price(value: str | None) -> float | None:
     if value is None:
         return None
 
@@ -65,7 +67,7 @@ def clean_price(value):
     return None
 
 # Clean metadata, stores normalized text if not None
-def clean_var_metadata(value):
+def clean_var_metadata(value: str | None) -> str | None:
     if value is None:
         return None
 
@@ -118,7 +120,7 @@ def clean_is_best_seller(
         return clean_title(badge_text), False
 
 # Clean Sponsored value
-def clean_is_sponsored(value):
+def clean_is_sponsored(value: str | None) -> bool | None:
     normalized = clean_title(value)
 
     if normalized is None:
@@ -164,7 +166,7 @@ def clean_coupon(
             return None, None, None
 
 # Clean buy box information, stores normalized text only
-def clean_buy_box_action(value):
+def clean_buy_box_action(value: str | None) -> str | None:
     return clean_title(value)
 
 # Clean delivery details, evaluates if free, fast and min amount
@@ -182,18 +184,7 @@ def clean_delivery_details(value: str | None) -> tuple[str | None, bool | None, 
     match_fast = re.search(pattern_fast, normalized, re.IGNORECASE)
     match_amount = re.search(pattern_amount, normalized, re.IGNORECASE)
 
-    val_free = bool(match_free)
-    val_fast = bool(match_fast)
-    val_amount = bool(match_amount)
-
-    if match_free:
-        val_free = True
-    if match_fast:
-        val_fast = True
-    if match_amount:
-        val_amount = True
-
-    return normalized, val_free, val_fast, val_amount
+    return normalized, bool(match_free), bool(match_fast), bool(match_amount)
 
 def clean_sustainability(
     value: str | None,
@@ -246,7 +237,7 @@ def clean_product_url(value: str | None) -> tuple[str | None, str | None, str | 
         return normalized, asin, product_path
     return normalized, None, None
 
-def clean_collected_at(value):
+def clean_collected_at(value: str | None) -> datetime | None:
     normalized = clean_title(value)
 
     if normalized is None:
@@ -257,7 +248,7 @@ def clean_collected_at(value):
     except ValueError:
         return None
 
-def transform_row(raw_row):
+def transform_row(raw_row: dict[str, str | None]) -> dict[str, Any]:
     listed_price, has_discount = clean_listed_price(
         raw_row["Listed_price"],
         raw_row["Current/discounted_price"]
@@ -313,222 +304,11 @@ def transform_row(raw_row):
 
 
 if __name__ == "__main__":
-    # Evaluating clean_title()
-    """"
-    assert clean_title("") is None
-    assert clean_title(" ") is None
-    assert clean_title(None) is None
-    assert clean_title(" wireless headset ") == "wireless headset"
-    """
-
-    # Evaluating clean_rating()
-    """
-    assert clean_rating("") is None
-    assert clean_rating(None) is None
-    assert clean_rating("out of 5 stars") is None
-    assert clean_rating("6.2 out of 5 stars") is None
-    assert clean_rating("5 out of 5 stars") == 5.0
-    assert clean_rating(" 4.6 out of 5 stars") == 4.6
-    assert clean_rating("4.6 out of 5 stars") == 4.6
-    """
-
-    # Evaluating clean_n_reviews()
-    """
-    assert clean_n_reviews("") is None
-    assert clean_n_reviews(None) is None
-    assert clean_n_reviews("5,257") == 5257
-    assert isinstance(clean_n_reviews("5,257"), int)
-    assert clean_n_reviews(" 1,234 ") == 1234
-    assert clean_n_reviews("5,25") is None
-    assert clean_n_reviews("-5") is None
-    assert clean_n_reviews("25.5") is None
-    assert clean_n_reviews("unknown") is None
-    """
-
-    # Evaluating clean_monthly_pur_lb()
-    """
-    assert clean_monthly_pur_lb("100+ bought in past month") == 100
-    assert clean_monthly_pur_lb("1K+ bought in past month") == 1000
-    assert clean_monthly_pur_lb("1k+ bought in past month") == 1000
-    assert clean_monthly_pur_lb(" 500+ bought in past month") == 500
-    assert clean_monthly_pur_lb("No featured offers available") is None
-    assert clean_monthly_pur_lb(None) is None
-    """
-
-    # Evaluating clean_price()
-    """
-    assert clean_price("$29.99") == 29.99
-    assert clean_price("$1,299.00") == 1299.00
-    assert isinstance(clean_price("$29.99"), float)
-    assert clean_price("NaN") is None
-    assert clean_price("$1,29.00") is None
-    assert clean_price("$0.00") == 0.0
-    assert clean_price("0") == 0.0
-    assert clean_price("-5.00") is None
-    assert clean_price("$abc") is None
-    """
-
-    # Evaluating clean_var_metadata()
-    """
-    assert clean_var_metadata(" basic variant price: 2.4GHz ") == "basic variant price: 2.4GHz"
-    assert clean_var_metadata("basic variant price: nan") == "basic variant price: nan"
-    assert clean_var_metadata("") is None
-    assert clean_var_metadata("   ") is None
-    assert clean_var_metadata(None) is None
-    """
-
-    # Evaluating clean_listed_price()
-    """
-    assert clean_listed_price("$99.99", "$79.99") == (99.99, True)
-    assert clean_listed_price("$99.99", "$99.99") == (99.99, False)
-    assert clean_listed_price("$79.99", "$99.99") == (79.99, False)
-    assert clean_listed_price(" No Discount ", "$79.99") == (None, False)
-    assert clean_listed_price(None, "$79.99") == (None, None)
-    assert clean_listed_price("$99.99", None) == (99.99, None)
-    """
-
-    # Evaluating clean_is_best_seller()
-    """
-    assert clean_is_best_seller(" Best Seller ") == ("Best Seller", True)
-    assert clean_is_best_seller("best seller") == ("best seller", True)
-    assert clean_is_best_seller("No Badge") == ("No Badge", False)
-    assert clean_is_best_seller("Limited time deal") == ("Limited time deal", False)
-    assert clean_is_best_seller(" ") == (None, None)
-    assert clean_is_best_seller(None) == (None, None)
-    """
-
-    # Evaluating clean_is_sponsored()
-    """
-    assert clean_is_sponsored("Sponsored") is True
-    assert clean_is_sponsored(" sponsored ") is True
-    assert clean_is_sponsored("Organic") is False
-    assert clean_is_sponsored(" organic ") is False
-    assert clean_is_sponsored("") is None
-    assert clean_is_sponsored("   ") is None
-    assert clean_is_sponsored(None) is None
-    assert clean_is_sponsored("Unknown") is None
-    """
-
-    # Evaluating clean_coupon()
-    """
-    assert clean_coupon("No Coupon") == (False, None, None)
-    assert clean_coupon(" no coupon ") == (False, None, None)
-    assert clean_coupon("Save 15% with coupon") == (True, "percent", 15.0)
-    assert clean_coupon("Save 7.5% with coupon") == (True, "percent", 7.5)
-    assert clean_coupon("Save $16.00 with coupon") == (True, "fixed", 16.0)
-    assert clean_coupon("Save with coupon") == (None, None, None)
-    assert clean_coupon("Save $5 and 10% with coupon") == (None, None, None)
-    assert clean_coupon("Save 150% with coupon") == (None, None, None)
-    assert clean_coupon(None) == (None, None, None)
-    """
-
-    # Evaluating clean_buy_action()
-    """
-    assert clean_buy_box_action(" Add to cart ") == "Add to cart"
-    assert clean_buy_box_action("See all buying options") == "See all buying options"
-    assert clean_buy_box_action("") is None
-    assert clean_buy_box_action("   ") is None
-    assert clean_buy_box_action(None) is None
-    """
-
-    # Evaluating clean_delivery_details()
-    """
-    assert clean_delivery_details(None) == (None, None, None, None)
-    assert clean_delivery_details("Delivery Mon, Sep 1") == (
-        "Delivery Mon, Sep 1", False, False, False
-    )
-    assert clean_delivery_details(
-        "FREE delivery Wed, Sep 3 on $35 of items shipped by Amazon "
-        "Or fastest delivery Sun, Aug 31"
-    ) == (
-               "FREE delivery Wed, Sep 3 on $35 of items shipped by Amazon "
-               "Or fastest delivery Sun, Aug 31",
-               True, True, True
-           )
-    """
-
-    # Evaluating clean_sustainability()
-    """
-    assert clean_sustainability("Carbon impact") == (
-        "Carbon impact", "Carbon impact", 0
-    )
-    assert clean_sustainability("Energy efficiency +3 more") == (
-        "Energy efficiency +3 more", "Energy efficiency", 3
-    )
-    assert clean_sustainability("Works with Alexa") == (
-        "Works with Alexa", "Works with Alexa", 0
-    )
-    assert clean_sustainability("Alexa Built-in") == (
-        "Alexa Built-in", "Alexa Built-in", 0
-    )
-    assert clean_sustainability(None) == (None, None, None)
-    """
-
-    # Evaluating clean_image_url()
-    """
-    assert clean_image_url(
-        " https://m.media-amazon.com/images/I/example.jpg "
-    ) == "https://m.media-amazon.com/images/I/example.jpg"
-    assert clean_image_url("http://example.com/image.jpg") is None
-    assert clean_image_url("/images/example.jpg") is None
-    assert clean_image_url("not a url") is None
-    assert clean_image_url("https:///image.jpg") is None
-    assert clean_image_url("") is None
-    assert clean_image_url(None) is None
-    """
-
-    # Evaluating clean_product_url()
-    """
-    assert clean_product_url(
-        "/Product-Name/dp/B0DNZB7TQG/ref=sr_1"
-    ) == (
-               "/Product-Name/dp/B0DNZB7TQG/ref=sr_1",
-               "B0DNZB7TQG",
-               "/dp/B0DNZB7TQG",
-           )
-    assert clean_product_url(
-        "/sspa/click?url=%2FProduct-Name%2Fdp%2FB0DNZB7TQG%2Fref"
-    ) == (
-               "/sspa/click?url=%2FProduct-Name%2Fdp%2FB0DNZB7TQG%2Fref",
-               "B0DNZB7TQG",
-               "/dp/B0DNZB7TQG",
-           )
-    assert clean_product_url("/products/example") == (
-        "/products/example",
-        None,
-        None,
-    )
-    assert clean_product_url("") == (None, None, None)
-    assert clean_product_url(None) == (None, None, None)
-    """
-
-    # Evaluating clean_collected_at()
-
-    """
-    assert clean_collected_at("21-08-2025 11:14") == datetime(2025, 8, 21, 11, 14)
-    assert clean_collected_at(" 21-08-2025 11:14 ") == datetime(2025, 8, 21, 11, 14)
-    assert clean_collected_at("2025-08-21 11:14") is None
-    assert clean_collected_at("31-02-2025 11:14") is None
-    assert clean_collected_at("") is None
-    assert clean_collected_at(None) is None
-    """
-
-    sample = {
-        "Title": " wireless headset ",
-        "Rating": "4.6 out of 5 stars",
-        "Number_of_reviews": "2,457",
-        "bought_in_last_month": "1K+ bought in past month",
-        "Current/discounted_price": "$29.99",
-        "Price_on_variant": "basic variant price: 2.4GHz",
-        "Listed_price": "$39.99",
-        "is_best_seller": "Best Seller",
-        "is_sponsored": "Sponsored",
-        "is_couponed": "Save 15% with coupon",
-        "buy_box_availability": "Add to cart",
-        "delivery_details": "FREE delivery Wed, Sep 3 on $35 of items shipped by Amazon Or fastest delivery Sun, Aug 31",
-        "sustainability_badges": "Energy efficiency +3 more",
-        "image_url": "https://m.media-amazon.com/images/I/example.jpg",
-        "product_url": "/sspa/click?url=%2FWireless-Headset%2Fdp%2FB0DNZB7TQG%2Fref",
-        "collected_at": "21-08-2025 11:14",
-    }
-    print(transform_row(sample))
+    with open("amazon_sales_data_uncleaned.csv", mode="r", encoding="utf-8-sig", newline="") as csv_file:
+        reader = csv.DictReader(csv_file)
+        first_raw_row = next(reader, None)
+        if first_raw_row is None:
+            print("The CSV has no data rows to transform.")
+        else:
+            first_clean_row = transform_row(first_raw_row)
+            print(first_clean_row)
