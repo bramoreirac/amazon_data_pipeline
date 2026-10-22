@@ -1,0 +1,24 @@
+# IDE settings
+.idea/
+
+# Python environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Generated pipeline outputs
+outputs/
+
+# Raw dataset
+amazon_sales_data_uncleaned.csv
+
+# Environment variables and secrets
+.env
+.env.*
+
+# First etl
+src/etl.py
+tests/test_etl.py
