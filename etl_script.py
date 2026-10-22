@@ -304,11 +304,23 @@ def transform_row(raw_row: dict[str, str | None]) -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    with open("amazon_sales_data_uncleaned.csv", mode="r", encoding="utf-8-sig", newline="") as csv_file:
-        reader = csv.DictReader(csv_file)
-        first_raw_row = next(reader, None)
-        if first_raw_row is None:
-            print("The CSV has no data rows to transform.")
-        else:
-            first_clean_row = transform_row(first_raw_row)
-            print(first_clean_row)
+    with open("amazon_sales_data_uncleaned.csv", mode="r", encoding="utf-8-sig", newline="") as read_file:
+        reader = csv.DictReader(read_file)
+
+        with open("outputs/clean_data.csv", mode="w", encoding="utf-8-sig", newline="") as write_file:
+            first_raw_row = next(reader, None)
+
+            if first_raw_row is None:
+                print("The CSV has no data rows to transform.")
+            else:
+                first_clean_row = transform_row(first_raw_row)
+                writer = csv.DictWriter(
+                    write_file,
+                    fieldnames=list(first_clean_row.keys()),
+                )
+                writer.writeheader()
+                writer.writerow(first_clean_row)
+
+                for row in reader:
+                    clean_row = transform_row(row)
+                    writer.writerow(clean_row)
